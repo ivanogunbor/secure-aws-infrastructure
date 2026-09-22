@@ -4,6 +4,8 @@ import shutil
 import psutil
 import subprocess
 import json
+
+
 def get_system_info():
      hostname = socket.gethostname()
 
@@ -20,6 +22,8 @@ def get_system_info():
                     }
      
      return system_info
+
+
 def get_resource_usage():
      total, used, free = shutil.disk_usage("c:\\")
      disk_percentage = (used / total) * 100
@@ -64,7 +68,36 @@ def get_firewall_status():
                          command],
                          capture_output = True,
                          text = True,)
-    return result
+    firewall_data = json.loads(result.stdout)
+    return firewall_data
+
+
+def evaluate_firewall(firewall_data):
+    findings = []
+    for profile in firewall_data:
+        if profile["Enabled"] == 1:
+            firewall_status = "OK"
+        else:
+            firewall_status = "Warning!"
+
+        finding = { 
+                    "name": profile['name'],
+                    "enabled": profile['Enabled'],
+                    "status": firewall_status,
+                    }
+        
+        findings.append(finding)
+    return findings
+
+
+def display_firewall_findings(findings):
+    for finding in findings:
+        print (f"{finding['name']} Firewall: Enabled = {finding['enabled']} {finding['status']}")
+
+
+    
+
+    
 
 
 
@@ -76,19 +109,12 @@ def get_firewall_status():
 memory_status = get_status(memory)
 disk_status = get_status(disk)
 cpu_status = get_status(cpu)
-firewall = get_firewall_status()
-firewall_data = json.loads(firewall.stdout)
+firewall_data = get_firewall_status()
+firewall_findings = evaluate_firewall(firewall_data)
 
 
 
-for profile in firewall_data:
-    if profile["Enabled"] == 1:
-        firewall_status = "OK"
 
-    else:
-        firewall_status = "Warning!"
-
-    print(f"{profile['name']}: Firewall [{firewall_status}]")
 
 
 
@@ -101,3 +127,4 @@ print (f"Host Name: {system_info['hostname']}")
 print (f"Memory Usage: {memory}% [{memory_status}]")
 print (f"Disk Usage: {disk}% [{disk_status}]")
 print (f"CPU Usage: {cpu}% [{cpu_status}] ")
+display_firewall_findings(firewall_findings)
